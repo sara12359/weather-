@@ -18,12 +18,22 @@ def weather_view(request):
                 data = response.json()
                 
                 if response.status_code == 200:
+                    main_weather = data['weather'][0]['main']
+                    emoji = '☁️'
+                    if main_weather == 'Clear':
+                        emoji = '☀️'
+                    elif main_weather in ['Rain', 'Drizzle', 'Thunderstorm']:
+                        emoji = '🌧'
+                    elif main_weather == 'Clouds':
+                        emoji = '☁️'
+                    
                     weather_data = {
                         'city': data['name'],
                         'temperature': data['main']['temp'],
                         'humidity': data['main']['humidity'],
                         'description': data['weather'][0]['description'],
                         'icon': data['weather'][0]['icon'],
+                        'emoji': emoji,
                     }
                 else:
                     error_message = f"City '{city}' not found."

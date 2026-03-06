@@ -197,8 +197,7 @@
         {% if weather_data %}
         <div class="weather-card">
             <div class="city-name">{{ weather_data.city }}</div>
-            <img class="weather-icon" src="http://openweathermap.org/img/wn/{{ weather_data.icon }}@2x.png"
-                alt="Weather Icon">
+            <div class="weather-icon" style="font-size: 5rem; line-height: 1; margin: 10px 0;">{{ weather_data.emoji }}</div>
             <div class="temp">{{ weather_data.temperature|floatformat:1 }}°C</div>
             <div class="desc">{{ weather_data.description }}</div>
 
