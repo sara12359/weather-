@@ -43,6 +43,10 @@
             padding: 40px;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
             animation: fadeIn 0.8s ease-out;
+            transform-style: preserve-3d;
+            perspective: 1000px;
+            transition: transform 0.1s;
+            will-change: transform;
         }
 
         @keyframes fadeIn {
@@ -126,6 +130,7 @@
             font-size: 4rem;
             font-weight: 300;
             margin: 10px 0;
+            animation: slideUp 0.6s ease-out 0.2s both;
         }
 
         .city-name {
@@ -139,6 +144,7 @@
             color: var(--accent-color);
             font-weight: 600;
             letter-spacing: 1px;
+            animation: slideUp 0.6s ease-out 0.3s both;
         }
 
         .details {
@@ -156,6 +162,14 @@
             gap: 4px;
         }
 
+        .detail-item:nth-child(1) {
+            animation: slideUp 0.6s ease-out 0.4s both;
+        }
+
+        .detail-item:nth-child(2) {
+            animation: slideUp 0.6s ease-out 0.5s both;
+        }
+
         .detail-label {
             font-size: 0.8rem;
             color: var(--text-dim);
@@ -170,17 +184,113 @@
             margin-bottom: 20px;
             text-align: center;
             font-size: 0.9rem;
+            animation: shake 0.5s cubic-bezier(.36, .07, .19, .97) both;
         }
 
         .weather-icon {
             width: 100px;
             height: 100px;
             margin: 0 auto;
+            animation: popIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.1s both;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes popIn {
+            from {
+                opacity: 0;
+                transform: scale(0.5);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        @keyframes shake {
+
+            10%,
+            90% {
+                transform: translate3d(-1px, 0, 0);
+            }
+
+            20%,
+            80% {
+                transform: translate3d(2px, 0, 0);
+            }
+
+            30%,
+            50%,
+            70% {
+                transform: translate3d(-4px, 0, 0);
+            }
+
+            40%,
+            60% {
+                transform: translate3d(4px, 0, 0);
+            }
+        }
+
+        /* Loader Overlay */
+        .loader-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(8px);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            color: white;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .loader-overlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-top-color: var(--accent-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 16px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
         }
     </style>
 </head>
 
 <body>
+    <div id="loader" class="loader-overlay">
+        <div class="spinner"></div>
+        <p>Fetching weather...</p>
+    </div>
+
     <div class="container">
         <h1>SkyCast</h1>
 
@@ -220,10 +330,53 @@
         {% endif %}
     </div>
 
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // 3D Tilt Effect
+            const card = document.querySelector('.container');
+            if (card) {
+                card.addEventListener('mousemove', (e) => {
+                    const rect = card.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+
+                    const centerX = rect.width / 2;
+                    const centerY = rect.height / 2;
+
+                    const rotateX = ((y - centerY) / centerY) * -5;
+                    const rotateY = ((x - centerX) / centerX) * 5;
+
+                    card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`;
+                });
+
+                card.addEventListener('mouseleave', () => {
+                    card.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)`;
+                    card.style.transition = 'transform 0.5s ease-out';
+                });
+
+                card.addEventListener('mouseenter', () => {
+                    card.style.transition = 'transform 0.1s ease-out';
+                });
+            }
+
+            // Form Submit Loader
+            const formObj = document.querySelector('form');
+            const loader = document.getElementById('loader');
+            if (formObj && loader) {
+                formObj.addEventListener('submit', () => {
+                    loader.classList.add('active');
+                });
+            }
+        });
+    </script>
+
     {% if not weather_data and not error_message and not city %}
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             if ("geolocation" in navigator) {
+                const loader = document.getElementById('loader');
+                if (loader) loader.classList.add('active');
+
                 // Determine if location should trigger an automatic search
                 navigator.geolocation.getCurrentPosition(function (position) {
                     const lat = position.coords.latitude;
@@ -259,6 +412,8 @@
                     form.submit();
                 }, function (error) {
                     console.log("Geolocation error:", error);
+                    const loader = document.getElementById('loader');
+                    if (loader) loader.classList.remove('active');
                 }, {
                     timeout: 5000 // timeout so we don't hang if user ignores prompt
                 });
