@@ -9,9 +9,15 @@ def weather_view(request):
 
     if request.method == 'POST':
         city = request.POST.get('city')
-        if city:
+        lat = request.POST.get('lat')
+        lon = request.POST.get('lon')
+        
+        if city or (lat and lon):
             api_key = settings.OPENWEATHER_API_KEY
-            url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}&units=metric"
+            if lat and lon and not city:
+                url = f"http://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={api_key}&units=metric"
+            else:
+                url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}&units=metric"
             
             try:
                 response = requests.get(url)
@@ -36,7 +42,7 @@ def weather_view(request):
                         'emoji': emoji,
                     }
                 else:
-                    error_message = f"City '{city}' not found."
+                    error_message = f"City '{city}' not found." if city else "Location not found."
             except Exception as e:
                 error_message = "An error occurred while fetching weather data."
 

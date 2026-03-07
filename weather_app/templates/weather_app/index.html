@@ -197,7 +197,8 @@
         {% if weather_data %}
         <div class="weather-card">
             <div class="city-name">{{ weather_data.city }}</div>
-            <div class="weather-icon" style="font-size: 5rem; line-height: 1; margin: 10px 0;">{{ weather_data.emoji }}</div>
+            <div class="weather-icon" style="font-size: 5rem; line-height: 1; margin: 10px 0;">{{ weather_data.emoji }}
+            </div>
             <div class="temp">{{ weather_data.temperature|floatformat:1 }}°C</div>
             <div class="desc">{{ weather_data.description }}</div>
 
@@ -218,6 +219,53 @@
         {% endif %}
         {% endif %}
     </div>
+
+    {% if not weather_data and not error_message and not city %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            if ("geolocation" in navigator) {
+                // Determine if location should trigger an automatic search
+                navigator.geolocation.getCurrentPosition(function (position) {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = '';
+
+                    // We need the CSRF token to submit via POST in Django
+                    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                    const csrfInput = document.createElement('input');
+                    csrfInput.type = 'hidden';
+                    csrfInput.name = 'csrfmiddlewaretoken';
+                    csrfInput.value = csrfToken;
+                    form.appendChild(csrfInput);
+
+                    // Add coordinates to form payload
+                    const latInput = document.createElement('input');
+                    latInput.type = 'hidden';
+                    latInput.name = 'lat';
+                    latInput.value = lat;
+                    form.appendChild(latInput);
+
+                    const lonInput = document.createElement('input');
+                    lonInput.type = 'hidden';
+                    lonInput.name = 'lon';
+                    lonInput.value = lon;
+                    form.appendChild(lonInput);
+
+                    // Append and submit
+                    document.body.appendChild(form);
+                    form.submit();
+                }, function (error) {
+                    console.log("Geolocation error:", error);
+                }, {
+                    timeout: 5000 // timeout so we don't hang if user ignores prompt
+                });
+            }
+        });
+    </script>
+    {% endif %}
 </body>
 
 </html>
