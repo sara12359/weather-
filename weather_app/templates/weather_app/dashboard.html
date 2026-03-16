@@ -205,6 +205,11 @@
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             {% if chart_labels and chart_data %}
+            {{ chart_labels|json_script:"chartLabels" }}
+            {{ chart_data|json_script:"chartData" }}
+            const labels = JSON.parse(document.getElementById('chartLabels').textContent);
+            const data = JSON.parse(document.getElementById('chartData').textContent);
+
             const ctx = document.getElementById('historicalChart').getContext('2d');
             
             let gradient = ctx.createLinearGradient(0, 0, 0, 350);
@@ -214,10 +219,10 @@
             new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: {{ chart_labels|safe }},
+                    labels: labels,
                     datasets: [{
                         label: 'Avg Temperature (°C)',
-                        data: {{ chart_data|safe }},
+                        data: data,
                         borderColor: '#818cf8',
                         backgroundColor: gradient,
                         borderWidth: 2,
