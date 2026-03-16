@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Analytics Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary-bg: #0f172a;
+            --secondary-bg: #1e293b;
+            --accent-color: #38bdf8;
+            --text-main: #f8fafc;
+            --text-dim: #94a3b8;
+            --card-glass: rgba(30, 41, 59, 0.7);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background: #0f172a;
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1000px;
+            margin: 0 auto 30px auto;
+        }
+
+        .nav-link {
+            color: var(--text-dim);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .nav-link:hover {
+            color: var(--text-main);
+        }
+
+        h1 {
+            font-weight: 600;
+            background: linear-gradient(to right, #38bdf8, #818cf8);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .dashboard-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 24px;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        @media (min-width: 768px) {
+            .dashboard-container {
+                grid-template-columns: 3fr 1fr;
+            }
+        }
+
+        .card {
+            background: var(--card-glass);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 30px;
+        }
+
+        h2 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: var(--text-main);
+        }
+
+        .chart-container {
+            width: 100%;
+            height: 350px;
+        }
+
+        select {
+            background: rgba(15, 23, 42, 0.8);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 8px 12px;
+            outline: none;
+            cursor: pointer;
+            margin-bottom: 20px;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .top-cities-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .city-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            text-decoration: none;
+            color: inherit;
+            transition: background 0.2s;
+        }
+
+        .city-row:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .city-name {
+            font-weight: 400;
+            color: var(--text-dim);
+        }
+        
+        .city-row.active .city-name {
+            color: var(--accent-color);
+            font-weight: 600;
+        }
+
+        .city-temp {
+            font-weight: 600;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-dim);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <a href="{% url 'weather_view' %}" class="nav-link">← Back to Weather</a>
+        <h1>Analytics Dashboard</h1>
+        <div style="width: 80px;"></div> <!-- placeholder for spacing -->
+    </div>
+
+    <div class="dashboard-container">
+        <!-- Main Chart Section -->
+        <div class="card">
+            <h2>30-Day Temperature Trends</h2>
+            
+            {% if all_cities %}
+            <form method="GET" id="city-filter-form">
+                <select name="city" onchange="document.getElementById('city-filter-form').submit()">
+                    <option value="">-- Select a City --</option>
+                    {% for c in all_cities %}
+                        <option value="{{ c }}" {% if c == selected_city %}selected{% endif %}>{{ c }}</option>
+                    {% endfor %}
+                </select>
+            </form>
+            
+            <div class="chart-container">
+                <canvas id="historicalChart"></canvas>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <p>No historical data available yet. Start searching cities!</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Right sidebar -->
+        <div class="card">
+            <h2>Hottest Cities (Avg)</h2>
+            <div class="top-cities-list">
+                {% if top_cities %}
+                    {% for tc in top_cities %}
+                    <a href="?city={{ tc.city }}" class="city-row {% if tc.city == selected_city %}active{% endif %}">
+                        <span class="city-name">{{ tc.city }}</span>
+                        <span class="city-temp">{{ tc.avg_temp|floatformat:1 }}°C</span>
+                    </a>
+                    {% endfor %}
+                {% else %}
+                    <p style="color: var(--text-dim); font-size:0.9rem;">No data yet.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            {% if chart_labels and chart_data %}
+            const ctx = document.getElementById('historicalChart').getContext('2d');
+            
+            let gradient = ctx.createLinearGradient(0, 0, 0, 350);
+            gradient.addColorStop(0, 'rgba(129, 140, 248, 0.4)');
+            gradient.addColorStop(1, 'rgba(129, 140, 248, 0.0)');
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: {{ chart_labels|safe }},
+                    datasets: [{
+                        label: 'Avg Temperature (°C)',
+                        data: {{ chart_data|safe }},
+                        borderColor: '#818cf8',
+                        backgroundColor: gradient,
+                        borderWidth: 2,
+                        tension: 0.4,
+                        fill: true,
+                        pointBackgroundColor: '#1e293b',
+                        pointBorderColor: '#818cf8',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                            titleColor: '#94a3b8',
+                            bodyColor: '#f8fafc',
+                            borderColor: 'rgba(255,255,255,0.1)',
+                            borderWidth: 1,
+                            padding: 10,
+                            displayColors: false,
+                            callbacks: {
+                                label: function(context) {
+                                    return context.parsed.y + '°C';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false, drawBorder: false },
+                            ticks: { color: '#94a3b8', font: {family: 'Inter'} }
+                        },
+                        y: {
+                            grid: { color: 'rgba(255,255,255,0.05)', drawBorder: false },
+                            ticks: { color: '#94a3b8', font: {family: 'Inter'} }
+                        }
+                    }
+                }
+            });
+            {% endif %}
+        });
+    </script>
+</body>
+</html>
