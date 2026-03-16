@@ -1,7 +1,7 @@
 from django.db import models
 from django.utils import timezone
 
-class FavoriteCity(models.fields.Model):
+class FavoriteCity(models.Model):
     name = models.CharField(max_length=100, unique=True)
     added_at = models.DateTimeField(auto_now_add=True)
 
