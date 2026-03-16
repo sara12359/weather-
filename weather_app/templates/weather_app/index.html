@@ -473,9 +473,17 @@
                     loader.classList.add('active');
                 });
             }
+        });
+    </script>
 
-            // Render Chart if data is available
-            {% if weather_data and weather_data.chart_labels and weather_data.chart_data %}
+    {% if weather_data and weather_data.chart_labels and weather_data.chart_data %}
+    {{ weather_data.chart_labels|json_script:"indexChartLabels" }}
+    {{ weather_data.chart_data|json_script:"indexChartData" }}
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const labels = JSON.parse(document.getElementById('indexChartLabels').textContent);
+            const data = JSON.parse(document.getElementById('indexChartData').textContent);
+
             const ctx = document.getElementById('tempChart').getContext('2d');
             
             // Create gradient
@@ -486,10 +494,10 @@
             new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: {{ weather_data.chart_labels|safe }},
+                    labels: labels,
                     datasets: [{
                         label: 'Temperature (°C)',
-                        data: {{ weather_data.chart_data|safe }},
+                        data: data,
                         borderColor: '#38bdf8',
                         backgroundColor: gradient,
                         borderWidth: 2,
@@ -534,9 +542,9 @@
                     }
                 }
             });
-            {% endif %}
         });
     </script>
+    {% endif %}
     
     {% if not weather_data and not error_message and not city %}
     <script>

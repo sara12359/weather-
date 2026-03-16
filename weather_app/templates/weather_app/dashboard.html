@@ -202,11 +202,11 @@
         </div>
     </div>
 
+    {% if chart_labels and chart_data %}
+    {{ chart_labels|json_script:"chartLabels" }}
+    {{ chart_data|json_script:"chartData" }}
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            {% if chart_labels and chart_data %}
-            {{ chart_labels|json_script:"chartLabels" }}
-            {{ chart_data|json_script:"chartData" }}
             const labels = JSON.parse(document.getElementById('chartLabels').textContent);
             const data = JSON.parse(document.getElementById('chartData').textContent);
 
@@ -267,8 +267,8 @@
                     }
                 }
             });
-            {% endif %}
         });
     </script>
+    {% endif %}
 </body>
 </html>
