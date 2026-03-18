@@ -133,8 +133,19 @@
             }
         });
 
-        // Map initialization logic would go here if we had lat/lon in the view context
-        // For now, let's just show a placeholder or try to find it from the last record
+        // Map initialization
+        const lat = {{ selected_lat|default:"null" }};
+        const lon = {{ selected_lon|default:"null" }};
+        
+        if (lat && lon) {
+            const map = L.map('map').setView([lat, lon], 10);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap'
+            }).addTo(map);
+            L.marker([lat, lon]).addTo(map)
+                .bindPopup('{{ selected_city }}')
+                .openPopup();
+        }
     });
 </script>
 {% endif %}

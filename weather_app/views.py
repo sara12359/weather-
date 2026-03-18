@@ -202,18 +202,19 @@ def dashboard_view(request):
         compare_chart_data = [round(r['avg_temp'], 1) for r in compare_records]
 
     # Map Coordinates
-    selected_city_coords = None
+    selected_lat = None
+    selected_lon = None
     if selected_city:
-        last_record = WeatherRecord.objects.filter(city=selected_city).order_by('-timestamp').first()
+        last_record = WeatherRecord.objects.filter(city=selected_city).exclude(lat__isnull=True).order_by('-timestamp').first()
         if last_record:
-            # We don't store lat/lon in WeatherRecord yet, 
-            # ideally we should add them to the model.
-            # For now, let's just use a dummy or skip if not available.
-            pass
+            selected_lat = last_record.lat
+            selected_lon = last_record.lon
 
     context = {
         'top_cities': top_cities,
         'selected_city': selected_city,
+        'selected_lat': selected_lat,
+        'selected_lon': selected_lon,
         'compare_city': compare_city,
         'chart_labels': chart_labels,
         'chart_data': chart_data,
