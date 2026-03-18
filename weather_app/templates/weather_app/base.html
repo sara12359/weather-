@@ -1,0 +1,48 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}SkyCast - Premium Weather{% endblock %}</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="{% static 'weather_app/style.css' %}">
+    
+    <!-- External JS -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    {% block extra_head %}{% endblock %}
+</head>
+<body data-condition="{{ weather_data.description|default:'Default' }}" data-page="{% block page_id %}{% endblock %}" data-has-data="{% if weather_data %}true{% else %}false{% endif %}">
+    
+    <div class="bg-overlay"></div>
+
+    <div id="loader" class="loader-overlay">
+        <div class="spinner"></div>
+        <p>Updating weather insights...</p>
+    </div>
+
+    <div class="main-wrapper">
+        <div class="nav-links">
+            <h2 style="font-weight: 700; background: linear-gradient(to right, #38bdf8, #818cf8); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">SkyCast</h2>
+            <div>
+                <a href="{% url 'weather_view' %}" class="nav-link" style="margin-right: 10px;">🏠 Home</a>
+                <a href="{% url 'dashboard' %}" class="nav-link">📊 Analytics</a>
+            </div>
+        </div>
+
+        <div class="container">
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+
+    <!-- JS -->
+    <script src="{% static 'weather_app/script.js' %}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

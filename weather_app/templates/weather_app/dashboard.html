@@ -1,274 +1,141 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends 'weather_app/base.html' %}
+{% load static %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Weather Analytics Dashboard</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        :root {
-            --primary-bg: #0f172a;
-            --secondary-bg: #1e293b;
-            --accent-color: #38bdf8;
-            --text-main: #f8fafc;
-            --text-dim: #94a3b8;
-            --card-glass: rgba(30, 41, 59, 0.7);
-        }
+{% block title %}SkyCast - Analytics Dashboard{% endblock %}
+{% block page_id %}dashboard{% endblock %}
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Inter', sans-serif;
-        }
+{% block extra_head %}
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+{% endblock %}
 
-        body {
-            background: #0f172a;
-            color: var(--text-main);
-            min-height: 100vh;
-            padding: 40px 20px;
-        }
+{% block content %}
+    <h1>Analytics Dashboard</h1>
 
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            max-width: 1000px;
-            margin: 0 auto 30px auto;
-        }
+    <div class="dashboard-grid">
+        <div class="card" style="background: var(--card-glass); border: 1px solid var(--glass-border); border-radius: 20px; padding: 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="font-size: 1.2rem; font-weight: 600;">30-Day Historical Trend</h2>
+                
+                <form method="GET" id="dashboard-filter" style="display: flex; gap: 8px;">
+                    <select name="city" class="styled-select" onchange="this.form.submit()" style="min-width: 150px;">
+                        <option value="">Select City</option>
+                        {% for c in all_cities %}
+                            <option value="{{ c }}" {% if c == selected_city %}selected{% endif %}>{{ c }}</option>
+                        {% endfor %}
+                    </select>
+                    
+                    <select name="compare_city" class="styled-select" onchange="this.form.submit()" style="min-width: 150px; border-color: #a855f7;">
+                        <option value="">Compare with...</option>
+                        {% for c in all_cities %}
+                            {% if c != selected_city %}
+                            <option value="{{ c }}" {% if c == compare_city %}selected{% endif %}>{{ c }}</option>
+                            {% endif %}
+                        {% endfor %}
+                    </select>
+                </form>
+            </div>
 
-        .nav-link {
-            color: var(--text-dim);
-            text-decoration: none;
-            transition: color 0.3s;
-        }
-
-        .nav-link:hover {
-            color: var(--text-main);
-        }
-
-        h1 {
-            font-weight: 600;
-            background: linear-gradient(to right, #38bdf8, #818cf8);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .dashboard-container {
-            max-width: 1000px;
-            margin: 0 auto;
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 24px;
-            animation: fadeIn 0.8s ease-out;
-        }
-
-        @media (min-width: 768px) {
-            .dashboard-container {
-                grid-template-columns: 3fr 1fr;
-            }
-        }
-
-        .card {
-            background: var(--card-glass);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 20px;
-            padding: 30px;
-        }
-
-        h2 {
-            font-size: 1.2rem;
-            font-weight: 600;
-            margin-bottom: 20px;
-            color: var(--text-main);
-        }
-
-        .chart-container {
-            width: 100%;
-            height: 350px;
-        }
-
-        select {
-            background: rgba(15, 23, 42, 0.8);
-            color: white;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 8px;
-            padding: 8px 12px;
-            outline: none;
-            cursor: pointer;
-            margin-bottom: 20px;
-            font-family: 'Inter', sans-serif;
-        }
-
-        .top-cities-list {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .city-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px;
-            background: rgba(255, 255, 255, 0.03);
-            border-radius: 12px;
-            text-decoration: none;
-            color: inherit;
-            transition: background 0.2s;
-        }
-
-        .city-row:hover {
-            background: rgba(255, 255, 255, 0.08);
-        }
-
-        .city-name {
-            font-weight: 400;
-            color: var(--text-dim);
-        }
-        
-        .city-row.active .city-name {
-            color: var(--accent-color);
-            font-weight: 600;
-        }
-
-        .city-temp {
-            font-weight: 600;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 40px;
-            color: var(--text-dim);
-        }
-    </style>
-</head>
-
-<body>
-    <div class="header">
-        <a href="{% url 'weather_view' %}" class="nav-link">← Back to Weather</a>
-        <h1>Analytics Dashboard</h1>
-        <div style="width: 80px;"></div> <!-- placeholder for spacing -->
-    </div>
-
-    <div class="dashboard-container">
-        <!-- Main Chart Section -->
-        <div class="card">
-            <h2>30-Day Temperature Trends</h2>
-            
-            {% if all_cities %}
-            <form method="GET" id="city-filter-form">
-                <select name="city" onchange="document.getElementById('city-filter-form').submit()">
-                    <option value="">-- Select a City --</option>
-                    {% for c in all_cities %}
-                        <option value="{{ c }}" {% if c == selected_city %}selected{% endif %}>{{ c }}</option>
-                    {% endfor %}
-                </select>
-            </form>
-            
-            <div class="chart-container">
+            {% if chart_labels %}
+            <div style="height: 350px;">
                 <canvas id="historicalChart"></canvas>
             </div>
+            
+            <div id="map" class="map-container"></div>
             {% else %}
-            <div class="empty-state">
-                <p>No historical data available yet. Start searching cities!</p>
+            <div style="text-align: center; padding: 60px; color: var(--text-dim);">
+                <p>No historical data available. Start searching for cities to build your analytics!</p>
             </div>
             {% endif %}
         </div>
 
-        <!-- Right sidebar -->
-        <div class="card">
-            <h2>Hottest Cities (Avg)</h2>
-            <div class="top-cities-list">
-                {% if top_cities %}
+        <div class="sidebar">
+            <div class="card" style="background: var(--card-glass); border: 1px solid var(--glass-border); border-radius: 20px; padding: 24px; margin-bottom: 24px;">
+                <h2 style="font-size: 1.1rem; margin-bottom: 16px;">Hottest Cities</h2>
+                <div style="display: flex; flex-direction: column; gap: 10px;">
                     {% for tc in top_cities %}
-                    <a href="?city={{ tc.city }}" class="city-row {% if tc.city == selected_city %}active{% endif %}">
-                        <span class="city-name">{{ tc.city }}</span>
-                        <span class="city-temp">{{ tc.avg_temp|floatformat:1 }}°C</span>
+                    <a href="?city={{ tc.city }}" style="display: flex; justify-content: space-between; padding: 12px; background: rgba(255,255,255,0.03); border-radius: 12px; text-decoration: none; color: inherit; transition: background 0.2s;" class="{% if tc.city == selected_city %}active{% endif %}">
+                        <span style="color: {% if tc.city == selected_city %}var(--accent-color){% else %}var(--text-dim){% endif %}">{{ tc.city }}</span>
+                        <span style="font-weight: 600;">{{ tc.avg_temp|floatformat:1 }}°</span>
                     </a>
                     {% endfor %}
-                {% else %}
-                    <p style="color: var(--text-dim); font-size:0.9rem;">No data yet.</p>
-                {% endif %}
+                </div>
+            </div>
+
+            <div class="card" style="background: linear-gradient(135deg, rgba(56, 189, 248, 0.1), rgba(168, 85, 247, 0.1)); border: 1px solid var(--glass-border); border-radius: 20px; padding: 24px;">
+                <h2 style="font-size: 1.1rem; margin-bottom: 8px;">Analytics Tip</h2>
+                <p style="font-size: 0.85rem; color: var(--text-dim); line-height: 1.5;">
+                    The dashboard tracks every search you make. Compare two cities to see which one has been warmer over the last 30 days.
+                </p>
             </div>
         </div>
     </div>
+{% endblock %}
 
-    {% if chart_labels and chart_data %}
-    {{ chart_labels|json_script:"chartLabels" }}
-    {{ chart_data|json_script:"chartData" }}
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const labels = JSON.parse(document.getElementById('chartLabels').textContent);
-            const data = JSON.parse(document.getElementById('chartData').textContent);
+{% block extra_js %}
+{% if chart_labels %}
+{{ chart_labels|json_script:"chartLabels" }}
+{{ chart_data|json_script:"chartData" }}
+{{ compare_chart_data|json_script:"compareData" }}
+{{ compare_city|json_script:"compareCityName" }}
 
-            const ctx = document.getElementById('historicalChart').getContext('2d');
-            
-            let gradient = ctx.createLinearGradient(0, 0, 0, 350);
-            gradient.addColorStop(0, 'rgba(129, 140, 248, 0.4)');
-            gradient.addColorStop(1, 'rgba(129, 140, 248, 0.0)');
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const labels = JSON.parse(document.getElementById('chartLabels').textContent);
+        const data = JSON.parse(document.getElementById('chartData').textContent);
+        const compareData = JSON.parse(document.getElementById('compareData').textContent);
+        const compareCity = JSON.parse(document.getElementById('compareCityName').textContent);
+        
+        const ctx = document.getElementById('historicalChart').getContext('2d');
+        
+        const datasets = [{
+            label: '{{ selected_city }}',
+            data: data,
+            borderColor: '#38bdf8',
+            backgroundColor: 'transparent',
+            borderWidth: 3,
+            tension: 0.3,
+            pointRadius: 4,
+            pointBackgroundColor: '#38bdf8'
+        }];
 
-            new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Avg Temperature (°C)',
-                        data: data,
-                        borderColor: '#818cf8',
-                        backgroundColor: gradient,
-                        borderWidth: 2,
-                        tension: 0.4,
-                        fill: true,
-                        pointBackgroundColor: '#1e293b',
-                        pointBorderColor: '#818cf8',
-                        pointBorderWidth: 2,
-                        pointRadius: 4,
-                        pointHoverRadius: 6
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            backgroundColor: 'rgba(15, 23, 42, 0.9)',
-                            titleColor: '#94a3b8',
-                            bodyColor: '#f8fafc',
-                            borderColor: 'rgba(255,255,255,0.1)',
-                            borderWidth: 1,
-                            padding: 10,
-                            displayColors: false,
-                            callbacks: {
-                                label: function(context) {
-                                    return context.parsed.y + '°C';
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            grid: { display: false, drawBorder: false },
-                            ticks: { color: '#94a3b8', font: {family: 'Inter'} }
-                        },
-                        y: {
-                            grid: { color: 'rgba(255,255,255,0.05)', drawBorder: false },
-                            ticks: { color: '#94a3b8', font: {family: 'Inter'} }
-                        }
-                    }
-                }
+        if (compareData && compareData.length > 0) {
+            datasets.push({
+                label: compareCity,
+                data: compareData,
+                borderColor: '#a855f7',
+                backgroundColor: 'transparent',
+                borderWidth: 3,
+                tension: 0.3,
+                pointRadius: 4,
+                pointBackgroundColor: '#a855f7'
             });
+        }
+
+        new Chart(ctx, {
+            type: 'line',
+            data: { labels: labels, datasets: datasets },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: datasets.length > 1,
+                        labels: { color: '#f8fafc', font: { family: 'Inter' } }
+                    }
+                },
+                scales: {
+                    x: { ticks: { color: '#94a3b8' }, grid: { display: false } },
+                    y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+                }
+            }
         });
-    </script>
-    {% endif %}
-</body>
-</html>
+
+        // Map initialization logic would go here if we had lat/lon in the view context
+        // For now, let's just show a placeholder or try to find it from the last record
+    });
+</script>
+{% endif %}
+{% endblock %}
