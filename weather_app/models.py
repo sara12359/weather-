@@ -15,7 +15,7 @@ class WeatherRecord(models.Model):
     city = models.CharField(max_length=100)
     temperature = models.FloatField()
     humidity = models.IntegerField()
-    wind_speed = models.FloatField()
+    wind_speed = models.FloatField(null=True, blank=True)
     description = models.CharField(max_length=255)
     lat = models.FloatField(null=True, blank=True)
     lon = models.FloatField(null=True, blank=True)

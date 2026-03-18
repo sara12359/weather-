@@ -78,7 +78,9 @@ def weather_view(request):
                         temperature=temp,
                         humidity=humidity,
                         wind_speed=wind_speed,
-                        description=desc
+                        description=desc,
+                        lat=data['coord']['lat'],
+                        lon=data['coord']['lon']
                     )
                     
                     # Fetch Forecast
