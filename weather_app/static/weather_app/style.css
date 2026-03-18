@@ -295,6 +295,35 @@ button.primary-btn:hover {
     margin-top: 20px;
 }
 
+.city-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 12px;
+    text-decoration: none;
+    color: inherit;
+    transition: background 0.2s;
+    border: 1px solid transparent;
+}
+
+.city-row:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.city-row.active {
+    background: rgba(56, 189, 248, 0.1);
+    border-color: var(--accent-color);
+}
+
+.city-name-label {
+    color: var(--text-dim);
+}
+
+.city-row.active .city-name-label {
+    color: var(--accent-color);
+}
+
 /* Loader */
 .loader-overlay {
     position: fixed;

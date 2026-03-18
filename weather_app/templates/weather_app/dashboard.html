@@ -62,8 +62,8 @@
                 <h2 style="font-size: 1.1rem; margin-bottom: 16px;">Hottest Cities</h2>
                 <div style="display: flex; flex-direction: column; gap: 10px;">
                     {% for tc in top_cities %}
-                    <a href="?city={{ tc.city }}" class="city-row {% if tc.city == selected_city %}active{% endif %}" style="display: flex; justify-content: space-between; padding: 12px; background: rgba(255,255,255,0.03); border-radius: 12px; text-decoration: none; color: inherit; transition: background 0.2s;">
-                        <span class="city-name-label" style="color: {% if tc.city == selected_city %}var(--accent-color){% else %}var(--text-dim){% endif %};">{{ tc.city }}</span>
+                    <a href="?city={{ tc.city }}" class="city-row {% if tc.city == selected_city %}active{% endif %}">
+                        <span class="city-name-label">{{ tc.city }}</span>
                         <span style="font-weight: 600;">{{ tc.avg_temp|floatformat:1 }}°</span>
                     </a>
                     {% endfor %}
@@ -86,6 +86,8 @@
 {{ chart_data|json_script:"chartData" }}
 {{ compare_chart_data|json_script:"compareData" }}
 {{ compare_city|json_script:"compareCityName" }}
+{{ selected_lat|json_script:"selectedLat" }}
+{{ selected_lon|json_script:"selectedLon" }}
 
 <script>
     document.addEventListener('DOMContentLoaded', () => {
@@ -140,8 +142,8 @@
         });
 
         // Map initialization
-        const lat = {{ selected_lat|default_if_none:"null" }};
-        const lon = {{ selected_lon|default_if_none:"null" }};
+        const lat = JSON.parse(document.getElementById('selectedLat').textContent);
+        const lon = JSON.parse(document.getElementById('selectedLon').textContent);
         
         if (lat && lon) {
             const map = L.map('map').setView([lat, lon], 10);
