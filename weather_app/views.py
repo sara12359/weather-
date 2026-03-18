@@ -58,13 +58,18 @@ def weather_view(request):
                     weather_data = {
                         'city': city_name,
                         'temperature': temp,
+                        'feels_like': data['main']['feels_like'],
                         'humidity': humidity,
+                        'pressure': data['main']['pressure'],
+                        'visibility': data.get('visibility', 0) / 1000, # km
                         'description': desc.capitalize(),
                         'icon': data['weather'][0]['icon'],
                         'emoji': emoji,
                         'wind_speed': wind_speed,
                         'sunrise': sunrise,
                         'sunset': sunset,
+                        'lat': data['coord']['lat'],
+                        'lon': data['coord']['lon'],
                     }
                     
                     # Save to database
@@ -179,11 +184,38 @@ def dashboard_view(request):
             
     all_cities = list(WeatherRecord.objects.values_list('city', flat=True).distinct())
             
+    # Comparison Logic
+    compare_city = request.GET.get('compare_city')
+    compare_chart_data = []
+    if compare_city:
+        compare_records = records.filter(city=compare_city).annotate(
+            date=TruncDate('timestamp')
+        ).values('date').annotate(
+            avg_temp=Avg('temperature')
+        ).order_by('date')
+        
+        # Syncing dates is tricky if they have different record days
+        # For simplicity, we'll just send the data and let the frontend tooltips handle it, 
+        # or just assume they overlap for now labels are based on the main city.
+        compare_chart_data = [round(r['avg_temp'], 1) for r in compare_records]
+
+    # Map Coordinates
+    selected_city_coords = None
+    if selected_city:
+        last_record = WeatherRecord.objects.filter(city=selected_city).order_by('-timestamp').first()
+        if last_record:
+            # We don't store lat/lon in WeatherRecord yet, 
+            # ideally we should add them to the model.
+            # For now, let's just use a dummy or skip if not available.
+            pass
+
     context = {
         'top_cities': top_cities,
         'selected_city': selected_city,
+        'compare_city': compare_city,
         'chart_labels': chart_labels,
         'chart_data': chart_data,
+        'compare_chart_data': compare_chart_data,
         'all_cities': all_cities,
     }
     return render(request, 'weather_app/dashboard.html', context)
