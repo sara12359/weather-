@@ -43,7 +43,13 @@
                 <canvas id="historicalChart"></canvas>
             </div>
             
+            {% if selected_lat and selected_lon %}
             <div id="map" class="map-container"></div>
+            {% else %}
+            <div style="background: rgba(15, 23, 42, 0.3); border-radius: 16px; padding: 20px; text-align: center; margin-top: 20px; color: var(--text-dim);">
+                <p>Map view unavailable. Search for this city again to update its coordinates.</p>
+            </div>
+            {% endif %}
             {% else %}
             <div style="text-align: center; padding: 60px; color: var(--text-dim);">
                 <p>No historical data available. Start searching for cities to build your analytics!</p>
@@ -56,8 +62,8 @@
                 <h2 style="font-size: 1.1rem; margin-bottom: 16px;">Hottest Cities</h2>
                 <div style="display: flex; flex-direction: column; gap: 10px;">
                     {% for tc in top_cities %}
-                    <a href="?city={{ tc.city }}" style="display: flex; justify-content: space-between; padding: 12px; background: rgba(255,255,255,0.03); border-radius: 12px; text-decoration: none; color: inherit; transition: background 0.2s;" class="{% if tc.city == selected_city %}active{% endif %}">
-                        <span style="color: {% if tc.city == selected_city %}var(--accent-color){% else %}var(--text-dim){% endif %}">{{ tc.city }}</span>
+                    <a href="?city={{ tc.city }}" class="city-row {% if tc.city == selected_city %}active{% endif %}" style="display: flex; justify-content: space-between; padding: 12px; background: rgba(255,255,255,0.03); border-radius: 12px; text-decoration: none; color: inherit; transition: background 0.2s;">
+                        <span class="city-name-label" style="color: {% if tc.city == selected_city %}var(--accent-color){% else %}var(--text-dim){% endif %};">{{ tc.city }}</span>
                         <span style="font-weight: 600;">{{ tc.avg_temp|floatformat:1 }}°</span>
                     </a>
                     {% endfor %}
@@ -91,7 +97,7 @@
         const ctx = document.getElementById('historicalChart').getContext('2d');
         
         const datasets = [{
-            label: '{{ selected_city }}',
+            label: '{{ selected_city|escapejs }}',
             data: data,
             borderColor: '#38bdf8',
             backgroundColor: 'transparent',
@@ -134,8 +140,8 @@
         });
 
         // Map initialization
-        const lat = {{ selected_lat|default:"null" }};
-        const lon = {{ selected_lon|default:"null" }};
+        const lat = {{ selected_lat|default_if_none:"null" }};
+        const lon = {{ selected_lon|default_if_none:"null" }};
         
         if (lat && lon) {
             const map = L.map('map').setView([lat, lon], 10);
@@ -143,7 +149,7 @@
                 attribution: '&copy; OpenStreetMap'
             }).addTo(map);
             L.marker([lat, lon]).addTo(map)
-                .bindPopup('{{ selected_city }}')
+                .bindPopup('{{ selected_city|escapejs }}')
                 .openPopup();
         }
     });

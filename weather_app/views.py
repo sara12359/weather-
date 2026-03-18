@@ -170,8 +170,10 @@ def dashboard_view(request):
     if not selected_city and records.exists():
         selected_city = records.first().city
         
+    # Synchronization logic for comparison chart
     chart_labels = []
     chart_data = []
+    compare_chart_data = []
     
     if selected_city:
         city_records = records.filter(city=selected_city).annotate(
@@ -180,26 +182,31 @@ def dashboard_view(request):
             avg_temp=Avg('temperature')
         ).order_by('date')
         
-        for r in city_records:
-            chart_labels.append(r['date'].strftime('%b %d'))
-            chart_data.append(round(r['avg_temp'], 1))
-            
-    all_cities = list(WeatherRecord.objects.values_list('city', flat=True).distinct())
-            
-    # Comparison Logic
-    compare_city = request.GET.get('compare_city')
-    compare_chart_data = []
-    if compare_city:
-        compare_records = records.filter(city=compare_city).annotate(
-            date=TruncDate('timestamp')
-        ).values('date').annotate(
-            avg_temp=Avg('temperature')
-        ).order_by('date')
+        # Main city data map
+        main_data_map = {r['date'].strftime('%b %d'): round(r['avg_temp'], 1) for r in city_records}
+        chart_labels = list(main_data_map.keys())
+        chart_data = list(main_data_map.values())
         
-        # Syncing dates is tricky if they have different record days
-        # For simplicity, we'll just send the data and let the frontend tooltips handle it, 
-        # or just assume they overlap for now labels are based on the main city.
-        compare_chart_data = [round(r['avg_temp'], 1) for r in compare_records]
+        # Comparison logic
+        compare_city = request.GET.get('compare_city')
+        if compare_city:
+            comp_records = records.filter(city=compare_city).annotate(
+                date=TruncDate('timestamp')
+            ).values('date').annotate(
+                avg_temp=Avg('temperature')
+            ).order_by('date')
+            
+            comp_data_map = {r['date'].strftime('%b %d'): round(r['avg_temp'], 1) for r in comp_records}
+            
+            # Ensure compare_chart_data aligns with chart_labels
+            for label in chart_labels:
+                compare_chart_data.append(comp_data_map.get(label, None))
+                
+            # If compare city has dates NOT in main city, we could add them, but for now we stick to main city labels
+    else:
+        compare_city = request.GET.get('compare_city')
+
+    all_cities = list(WeatherRecord.objects.values_list('city', flat=True).distinct())
 
     # Map Coordinates
     selected_lat = None
